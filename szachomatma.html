@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pl">
+    <meta charset="UTF-8" />
+    <title>Matma szachowa</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+      *{margin:0;padding:0;box-sizing:border-box}
+      body{font-family:'Poppins',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px;color:#333}
+      .container{max-width:1000px;margin:0 auto;background:rgba(255,255,255,0.96);border-radius:18px;padding:28px;box-shadow:0 20px 40px rgba(0,0,0,0.12)}
+      h1{font-size:2em;text-align:center;margin-bottom:8px}
+      .creator-info{ text-align:center;margin-bottom:18px;padding:18px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:12px;color:#fff }
+      .creator-name{font-weight:600;font-size:1.1em}
+      .creator-subtitle{opacity:0.95;font-weight:300}
+      .setup-row{display:flex;gap:12px;align-items:center;justify-content:center;margin:16px 0;flex-wrap:wrap}
+      input[type='text'], input[type='number']{padding:12px 16px;border-radius:20px;border:2px solid #eee;min-width:180px}
+      .btn{padding:10px 16px;border-radius:12px;border:none;font-weight:600;cursor:pointer}
+      .btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+      .btn-secondary{background:#f8f9fa;border:1px solid #e6e6e6}
+  .equation{font-size:22px;margin:18px 0;text-align:center}
+  /* large piece render */
+  .equation .piece-large{font-size:64px;line-height:1;display:inline-block;margin:0 6px}
+  .equation .piece-label{display:block;font-size:14px;color:#555;margin-top:6px}
+  /* operators sized similar to pieces */
+  .equation .op-large{font-size:56px;line-height:1;display:inline-block;margin:0 8px;color:#333;vertical-align:middle}
+  /* feedback spacing: placed under equation and above controls */
+  .feedback{margin:12px 0;font-size:16px;text-align:center}
+  /* success banner */
+  .feedback.success{background:linear-gradient(90deg,#34d399,#10b981);color:white;padding:10px 14px;border-radius:12px;font-size:20px;font-weight:700;box-shadow:0 8px 20px rgba(16,185,129,0.18)}
+  .feedback.error{background:linear-gradient(90deg,#f87171,#ef4444);color:white;padding:10px 14px;border-radius:12px;font-size:18px;font-weight:700;box-shadow:0 8px 20px rgba(239,68,68,0.14)}
+      .controls-row{display:flex;gap:8px;align-items:center;justify-content:center}
+      .numpad{display:grid;grid-template-columns:repeat(3,56px);gap:8px;margin-top:12px;justify-content:center}
+      .numpad button{width:56px;height:48px;font-size:18px;border-radius:8px}
+      @media(max-width:640px){.container{padding:18px}.numpad{grid-template-columns:repeat(3,1fr)}.setup-row{flex-direction:column}}
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Matma szachowa — Ćwiczenia z wartości figur</h1>
+      <div class="creator-info">
+        <div style="display:flex; align-items:center; justify-content:center; gap:12px;">
+          <div class="logo" aria-hidden="true">
+            <svg width="44" height="44" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="logoGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#667eea"/>
+                  <stop offset="100%" style="stop-color:#764ba2"/>
+                </linearGradient>
+              </defs>
+              <path d="M15 75 L15 25 L25 25 L40 50 L55 25 L65 25 L65 75 L55 75 L55 40 L45 58 L35 58 L25 40 L25 75 Z" fill="url(#logoGradient2)"/>
+            </svg>
+          </div>
+          <div>
+            <div class="creator-name">Fundacja "Więcej Mądrości"</div>
+            <div class="creator-subtitle">Moduł: Matma Szachowa</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="setup-row" id="setup">
+        <input type="text" id="playerName" placeholder="🎮 Twoje imię" />
+        <select id="difficulty"><option value="easy">Łatwy</option><option value="medium">Średni</option><option value="hard">Trudny</option></select>
+        <label style="display:flex;align-items:center;gap:8px;">Czas (s): <input type="number" id="timeLimit" value="20" min="5" style="width:90px"/></label>
+        <button id="startBtn" class="btn btn-primary">Rozpocznij</button>
+        <button id="showBoardBtn" class="btn btn-secondary">Najlepsi</button>
+      </div>
+
+      <div id="game" style="display:none; margin-top:12px;">
+        <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
+          <div><strong id="playerDisplay"></strong></div>
+          <div>Poziom: <span id="levelDisplay"></span></div>
+          <div>Czas: <span id="timer">0</span>s</div>
+          <div>Punkty: <span id="score">0</span></div>
+        </div>
+
+        <hr />
+  <div class="equation" id="equation"></div>
+  <div class="feedback" id="feedback"></div>
+  <div id="controlsArea" style="text-align:center"></div>
+        <div style="text-align:center;margin-top:12px"><button id="quitBtn" class="btn btn-secondary">Zakończ</button></div>
+      </div>
+
+      <div id="endScreen" style="display:none;margin-top:12px;">
+        <h3>Wynik końcowy</h3>
+        <div id="finalScore"></div>
+        <h4>Najlepsze wyniki</h4>
+        <table id="leaderboard" style="width:100%; border-collapse:collapse"></table>
+        <div style="text-align:center;margin-top:12px"><button id="playAgainBtn" class="btn btn-primary">Zagraj jeszcze raz</button></div>
+      </div>
+
+      <div style="text-align:center;margin-top:18px;padding:16px;background:rgba(255,255,255,0.95);border-radius:12px;box-shadow:0 5px 15px rgba(0,0,0,0.1);">
+        <div style="font-weight:600;color:#333;font-size:1.05em">Fundacja "Więcej Mądrości"</div>
+        <div style="color:#666;margin-top:6px;">Edukacyjne moduły szachowe — Matma</div>
+      </div>
+    </div>
+
+    <script>
+      // piece values and symbols
+      const VALUES = { Pion: 1, Skoczek: 3, Goniec: 3, Wieza: 5, Hetman: 9 };
+      const SYMBOLS = {
+        Pion: "♙",
+        Skoczek: "♘",
+        Goniec: "♗",
+        Wieza: "♖",
+        Hetman: "♕",
+      };
+
+      // chess piece limits per color (realistic)
+      const PIECE_LIMITS = {
+        w: { K: 1, Q: 1, R: 2, N: 2, B: 2, P: 8 },
+        b: { K: 1, Q: 1, R: 2, N: 2, B: 2, P: 8 },
+      };
+
+      // map our names to keys used in limits
+      const TYPE_KEY = {
+        Pion: "P",
+        Skoczek: "N",
+        Goniec: "B",
+        Wieza: "R",
+        Hetman: "Q",
+      };
+
+      // game state
+      let player = { name: "Gracz" };
+      let difficulty = "easy";
+      let timeLimit = 20;
+      let timerInterval = null;
+      let timeLeft = 0;
+      let score = 0;
+      // per-task constraint: max pieces of the same color in one question
+      const MAX_SAME_COLOR_PER_TASK = 2; // można zmienić jeśli potrzeba
+
+      // on start
+      document.getElementById("startBtn").addEventListener("click", startGame);
+      document.getElementById("quitBtn").addEventListener("click", endGame);
+      document
+        .getElementById("playAgainBtn")
+        .addEventListener("click", () => location.reload());
+      document
+        .getElementById("showBoardBtn")
+        .addEventListener("click", showLeaderboardFromSetup);
+
+      function startGame() {
+        const nameVal = document.getElementById("playerName").value.trim();
+        if (nameVal) player.name = nameVal;
+        difficulty = document.getElementById("difficulty").value;
+        timeLimit = Math.max(
+          5,
+          parseInt(document.getElementById("timeLimit").value, 10) || 20
+        );
+        score = 0;
+        document.getElementById("playerDisplay").textContent = player.name;
+        document.getElementById("levelDisplay").textContent = difficulty;
+        document.getElementById("score").textContent = score;
+        document.getElementById("setup").style.display = "none";
+        document.getElementById("game").style.display = "";
+        nextQuestion();
+      }
+
+      function nextQuestion() {
+        // generate question according to difficulty and piece limits
+        const q = generateQuestion(difficulty);
+        if (!q) {
+          // fallback
+          showFeedback("Nie udało się wygenerować zadania.", true);
+          endGame();
+          return;
+        }
+        currentQuestion = q;
+        document.getElementById("equation").innerHTML = q.text;
+  const fb = document.getElementById("feedback"); fb.className = "feedback"; fb.innerHTML = "";
+        renderControlsForQuestion(q);
+        startTimer(timeLimit, onTimeOut);
+      }
+
+      function showFeedback(msg, isError) {
+        const el = document.getElementById("feedback");
+        el.className = "feedback " + (isError ? "error" : "success");
+        el.innerHTML = isError ? `⚠️ ${msg}` : `✅ ${msg}`;
+      }
+
+      function startTimer(seconds, onExpire) {
+        clearInterval(timerInterval);
+        timeLeft = seconds;
+        document.getElementById("timer").textContent = timeLeft;
+        timerInterval = setInterval(() => {
+          timeLeft--;
+          document.getElementById("timer").textContent = timeLeft;
+          if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            onExpire();
+          }
+        }, 1000);
+      }
+
+      function onTimeOut() {
+        showFeedback("Koniec czasu!", true);
+        finishSession();
+      }
+
+      function finishSession() {
+        // stop timer
+        clearInterval(timerInterval);
+        // show final score and leaderboard
+        document.getElementById("game").style.display = "none";
+        document.getElementById("endScreen").style.display = "";
+        document.getElementById(
+          "finalScore"
+        ).textContent = `${player.name} — ${score} pkt`;
+        updateLeaderboard(player.name, score, difficulty);
+        renderLeaderboard();
+      }
+
+      function endGame() {
+        if (confirm("Na pewno chcesz zakończyć grę?")) finishSession();
+      }
+
+      // Leaderboard stored in localStorage
+      function getLeaderboard() {
+        try {
+          const raw = localStorage.getItem("matma_szachowa_scores");
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function updateLeaderboard(name, pts, lvl) {
+        const list = getLeaderboard();
+        list.push({ name, pts, date: new Date().toLocaleString(), lvl });
+        list.sort((a, b) => b.pts - a.pts);
+        while (list.length > 50) list.pop();
+        localStorage.setItem("matma_szachowa_scores", JSON.stringify(list));
+      }
+
+      function renderLeaderboard() {
+        const tbody = document.querySelector("#leaderboard tbody");
+        tbody.innerHTML = "";
+        const list = getLeaderboard();
+        list.slice(0, 10).forEach((row, idx) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td style="border:1px solid #ddd; padding:6px;">${
+            idx + 1
+          }</td><td style="border:1px solid #ddd; padding:6px;">${escapeHtml(
+            row.name
+          )}</td><td style="border:1px solid #ddd; padding:6px;">${
+            row.pts
+          }</td><td style="border:1px solid #ddd; padding:6px;">${
+            row.date
+          }</td><td style="border:1px solid #ddd; padding:6px;">${
+            row.lvl
+          }</td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function showLeaderboardFromSetup() {
+        document.getElementById("setup").style.display = "none";
+        document.getElementById("game").style.display = "none";
+        document.getElementById("endScreen").style.display = "";
+        document.getElementById("finalScore").textContent = "";
+        renderLeaderboard();
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      // QUESTION GENERATOR enforcing PIECE_LIMITS per color
+      function generateQuestion(level) {
+        // pick number of pieces based on difficulty
+        let pieceCount;
+        if (level === "easy") pieceCount = randInt(1, 2);
+        else if (level === "medium") pieceCount = randInt(2, 3);
+        else pieceCount = randInt(3, 5);
+
+        // build a multiset of pieces with colors, respecting limits
+        const used = {
+          w: { P: 0, N: 0, B: 0, R: 0, Q: 0, K: 0 },
+          b: { P: 0, N: 0, B: 0, R: 0, Q: 0, K: 0 },
+        };
+        const poolTypes = ["Pion", "Skoczek", "Goniec", "Wieza", "Hetman"];
+        const picks = [];
+        let attempts = 0;
+        const colorCounts = { w: 0, b: 0 };
+        while (picks.length < pieceCount && attempts < 200) {
+          attempts++;
+          const type = poolTypes[randInt(0, poolTypes.length - 1)];
+          // pick a color probabilistically
+          const color = Math.random() < 0.5 ? "w" : "b";
+          // enforce max pieces of same color per task
+          if (colorCounts[color] + 1 > MAX_SAME_COLOR_PER_TASK) continue;
+          const key = TYPE_KEY[type];
+          if (used[color][key] + 1 > PIECE_LIMITS[color][key]) continue;
+          used[color][key]++;
+          colorCounts[color]++;
+          picks.push({ type, color });
+        }
+        if (picks.length === 0) return null;
+
+        // build expression
+        // for easy/medium prefer numeric questions; for medium/hard allow inequalities
+        const allowInequality = level !== "easy" && Math.random() < 0.6;
+
+        // compute value of a pick
+        function valueOf(p) {
+          return VALUES[p.type];
+        }
+
+        // create terms text
+        const terms = picks.map(
+          (p) =>
+            `<span class="piece-large">${SYMBOLS[p.type]}</span><span class="piece-label">${p.type} ${
+              p.color === "w" ? "białe" : "czarne"
+            }</span>`
+        );
+        // compute numeric value total
+        const numericParts = picks.map(valueOf);
+
+        if (allowInequality && Math.random() < 0.6) {
+          // compare sum of some picks to sum of others
+          // split picks into two non-empty groups
+          if (picks.length === 1) {
+            // fallback to number
+          } else {
+            const cut = randInt(1, picks.length - 1);
+            const left = picks.slice(0, cut);
+            const right = picks.slice(cut);
+            const leftSum = left.reduce((s, p) => s + valueOf(p), 0);
+            const rightSum = right.reduce((s, p) => s + valueOf(p), 0);
+            const text = `${left
+              .map((p) => `<span class="piece-large">${SYMBOLS[p.type]}</span>`)
+              .join('<span class="op-large">+</span>')} <span class="op-large">></span> ${right
+              .map((p) => `<span class="piece-large">${SYMBOLS[p.type]}</span>`)
+              .join('<span class="op-large">+</span>')}`;
+            const result = leftSum > rightSum ? "prawda" : "nieprawda";
+            return { text: text, result: result, type: "bool", used };
+          }
+        }
+
+        // otherwise form a numeric expression: maybe include multiplier for harder levels
+        let total = numericParts.reduce((s, v) => s + v, 0);
+        // possibly add multiplier
+        if (level === "easy") {
+          // maybe a simple multiplier
+          if (Math.random() < 0.3) {
+            const m = randInt(2, 3);
+            const idx = randInt(0, picks.length - 1);
+            const text = `${m} <span class="op-large">×</span> <span class="piece-large">${SYMBOLS[picks[idx].type]}</span>`;
+            const result = m * valueOf(picks[idx]);
+            return { text, result, type: "number", used };
+          }
+          const text = picks
+            .map((p) => `<span class="piece-large">${SYMBOLS[p.type]}</span>`)
+            .join('<span class="op-large">+</span>');
+          return { text, result: total, type: "number", used };
+        }
+
+        if (level === "medium") {
+          if (Math.random() < 0.4 && picks.length >= 2) {
+            // combine two with multiplier
+            const m = randInt(2, 3);
+            const text = `<span class="piece-large">${SYMBOLS[picks[0].type]}</span> <span class="op-large">+</span> ${m} <span class="op-large">×</span> <span class="piece-large">${SYMBOLS[picks[1].type]}</span>`;
+            const result = valueOf(picks[0]) + m * valueOf(picks[1]);
+            return { text, result, type: "number", used };
+          }
+          const text = picks
+            .map((p) => `<span class="piece-large">${SYMBOLS[p.type]}</span>`)
+            .join('<span class="op-large">+</span>');
+          return { text, result: total, type: "number", used };
+        }
+
+        // hard
+        // possibly more complex: combine sums and multipliers
+        if (level === "hard") {
+          if (Math.random() < 0.5 && picks.length >= 3) {
+            const m = randInt(2, 4);
+            const text = `${m} <span class="op-large">×</span> <span class="piece-large">${SYMBOLS[picks[0].type]}</span> <span class="op-large">+</span> <span class="piece-large">${SYMBOLS[picks[1].type]}</span> <span class="op-large">+</span> <span class="piece-large">${SYMBOLS[picks[2].type]}</span>`;
+            const result =
+              m * valueOf(picks[0]) +
+              valueOf(picks[1]) +
+              (picks[2] ? valueOf(picks[2]) : 0);
+            return { text, result, type: "number", used };
+          }
+          const text = picks
+            .map((p) => `<span class="piece-large">${SYMBOLS[p.type]}</span>`)
+            .join('<span class="op-large">+</span>');
+          return { text, result: total, type: "number", used };
+        }
+
+        return null;
+      }
+
+      function randInt(min, max) {
+        return Math.floor(Math.random() * (max - min)) + min;
+      }
+
+      // render controls for question
+      let currentQuestion = null;
+      function renderControlsForQuestion(q) {
+        const area = document.getElementById("controlsArea");
+        area.innerHTML = "";
+        if (q.type === "number") {
+          const wrapper = document.createElement("div");
+          wrapper.className = "controls-row";
+          const inp = document.createElement("input");
+          inp.type = "text";
+          inp.id = "numAnswer";
+          inp.style.fontSize = "28px";
+          inp.style.padding = "10px 14px";
+          inp.style.borderRadius = "10px";
+          inp.style.border = "1px solid #ddd";
+          inp.autocomplete = "off";
+          inp.inputMode = "numeric";
+          inp.pattern = "[0-9]*";
+          const btn = document.createElement("button");
+          btn.textContent = "Sprawdź";
+          btn.className = "btn btn-primary";
+          btn.style.marginLeft = "8px";
+          btn.addEventListener("click", () => submitNumericAnswer(inp, q));
+          inp.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") btn.click();
+          });
+          wrapper.appendChild(inp);
+          wrapper.appendChild(btn);
+
+          const pad = document.createElement("div");
+          pad.className = "numpad";
+          const keys = [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "CLR",
+            "0",
+            "⌫",
+          ];
+          keys.forEach((k) => {
+            const b = document.createElement("button");
+            b.textContent = k;
+            b.className = "btn btn-secondary";
+            b.style.width = "56px";
+            b.style.height = "48px";
+            b.style.fontSize = "18px";
+            b.addEventListener("click", () => {
+              if (k === "CLR") {
+                inp.value = "";
+              } else if (k === "⌫") {
+                inp.value = inp.value.slice(0, -1);
+              } else {
+                inp.value += k;
+              }
+              inp.focus();
+            });
+            pad.appendChild(b);
+          });
+
+          area.appendChild(wrapper);
+          area.appendChild(pad);
+          inp.focus();
+        } else if (q.type === "bool") {
+          const btnTrue = document.createElement("button");
+          btnTrue.textContent = "Prawda";
+          btnTrue.style.marginRight = "8px";
+          const btnFalse = document.createElement("button");
+          btnFalse.textContent = "Nieprawda";
+          btnTrue.addEventListener("click", () => handleBoolAnswer("prawda"));
+          btnFalse.addEventListener("click", () =>
+            handleBoolAnswer("nieprawda")
+          );
+          area.appendChild(btnTrue);
+          area.appendChild(btnFalse);
+        }
+      }
+
+      function submitNumericAnswer(inp, q) {
+        const raw = inp && inp.value ? String(inp.value).trim() : "";
+        if (raw === "") {
+          showFeedback("Podaj liczbę", true);
+          return;
+        }
+        const v = parseInt(raw, 10);
+        if (!Number.isFinite(v)) {
+          showFeedback("Nieprawidłowa liczba", true);
+          return;
+        }
+        clearInterval(timerInterval);
+        if (v === q.result) {
+          const base =
+            difficulty === "easy" ? 10 : difficulty === "medium" ? 20 : 35;
+          score += base + Math.max(0, timeLeft);
+          document.getElementById("score").textContent = score;
+          showFeedback("Dobrze!", false);
+          setTimeout(nextQuestion, 1000);
+        } else {
+          showFeedback("Źle!", true);
+          finishSession();
+        }
+      }
+
+      function handleBoolAnswer(choice) {
+        const q = currentQuestion;
+        if (!q) return;
+        clearInterval(timerInterval);
+        if (choice === q.result) {
+          const base =
+            difficulty === "easy" ? 10 : difficulty === "medium" ? 20 : 35;
+          score += base + Math.max(0, timeLeft);
+          document.getElementById("score").textContent = score;
+          showFeedback("Dobrze!", false);
+          setTimeout(nextQuestion, 1000);
+        } else {
+          showFeedback("Źle!", true);
+          finishSession();
+        }
+      }
+
+      // initial render
+      renderLeaderboard();
+    </script>
+  </body>
+</html>
